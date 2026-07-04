@@ -78,38 +78,3 @@ export async function getTotalLamports() {
 
   return (data || []).reduce((total, row) => total + Number(row.lamports || 0), 0);
 }
-
-/**
- * Checks if a transaction signature has already been processed and cached.
- * Used for double-spend replay protection.
- */
-export async function isTxCached(tx) {
-  const { data, error } = await db
-    .from("verified_tx_cache")
-    .select("tx")
-    .eq("tx", tx)
-    .maybeSingle(); // Returns null instead of throwing an error if no row is found.
-
-  if (error) {
-    throw new Error(`Failed to read transaction cache: ${error.message}`);
-  }
-
-  return !!data; // Converts the result to a boolean (true if row exists, false if null).
-}
-
-/**
- * Caches a verified transaction signature to block future reuse.
- */
-export async function cacheTx(tx) {
-  const { error } = await db
-    .from("verified_tx_cache")
-    .insert({
-      tx,
-      cached_at: new Date().toISOString(),
-    });
-
-  // Ignore unique violation (already cached) in case of concurrent requests.
-  if (error && error.code !== "23505") {
-    throw new Error(`Failed to cache transaction: ${error.message}`);
-  }
-}

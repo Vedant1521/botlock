@@ -19,3 +19,6 @@ const db = createClient(supabaseUrl, supabaseServiceRoleKey, {
 });
 
 export default db;
+// returns a pre-authenticated Supabase Client Object (which we export as db ).
+// Think of this object as a smart remote control or an authorized portal to your database. It has built-in buttons (methods)
+// that allow you to write database queries in JavaScript instead of raw SQL.
