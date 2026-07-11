@@ -72,6 +72,11 @@ Incoming Request -> [1. Bot Scorer Middleware]
 * **Secure Session Cookies**: Implements Ed25519 cryptographically signed login challenges.
 * **Decentralized Sessions**: Sessions are wrapped in stateless HMAC tokens containing `{ wallet, exp }`, reducing session authorization lookups to **0ms** by bypassing SQL queries.
 
+### 6. Heuristics Dynamic Pricing Scorer
+* **Multi-Signal Content Type Classifier**: Analyzes path rules and structural page markers (LaTeX formatting, code block tags, markdown tables) to classify the content type (e.g. Code, Dataset, Prose, News, Legal).
+* **2D Bot-Content Affinity Matrix**: Cross-references the bot's commercial tier (e.g., training scrapers pay a premium, search engines get discounts) against the classified content type to generate a base price multiplier.
+* **Compound Modifiers & Clamping**: Applies environmental modifiers for content age freshness and analytics pageview demand, clamping the final calculated price to a maximum **20×** of the floor price to prevent runaway pricing anomalies.
+
 ---
 
 ## 📊 Database Schema
@@ -185,6 +190,28 @@ curl -X POST http://localhost:3000/v1/verify \
   }'
 ```
 *If you submit the same mock transaction signature a second time, it will be rejected as a replay attack!*
+
+### 4. Gated Content Route Testing (Mock Mode)
+
+You can test how the server gates actual local pages (like `/articles/test`) when hit by a crawler bot:
+
+**Step 1: Request the gated content as a Bot**
+AI bots are detected automatically via headers/IP checks. To simulate being a crawler bot (like GPTBot) during local test calls, send a request with a crawler User-Agent:
+```bash
+curl http://localhost:3000/articles/test \
+  -H "User-Agent: Mozilla/5.0 (compatible; GPTBot/1.0; +https://openai.com/gptbot)"
+```
+*The server intercepts the crawler, calculates a dynamic price estimate ($0.01 USDC / 10,000 micro-USDC based on page metrics), and returns an **HTTP 402 Payment Required** response with the challenge token.*
+
+**Step 2: Submit the payment header to unlock the page**
+Submit the request again, attaching the challenge token in the `x-paywall-challenge` header, and the payment signature inside the `X-Payment` envelope header (must be Base64URL-encoded JSON payload):
+```bash
+curl http://localhost:3000/articles/test \
+  -H "User-Agent: Mozilla/5.0 (compatible; GPTBot/1.0; +https://openai.com/gptbot)" \
+  -H "x-paywall-challenge: YOUR_CHALLENGE_TOKEN_FROM_STEP_1" \
+  -H "X-Payment: exact; payload=eyJzaWduYXR1cmUiOiJtb2NrX3R4Xzk5OTk5OSJ9"
+```
+*The server verifies the signature, logs the metrics to the database, and returns an **HTTP 200 OK** response with the unlocked page content!*
 
 ---
 
