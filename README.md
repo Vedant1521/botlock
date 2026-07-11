@@ -261,6 +261,15 @@ Validates the cryptographic signature for the login challenge and issues a state
 Returns total earnings and analytical logs of payments for the authenticated wallet.
 * **Headers**: `Authorization: Bearer <session>`
 
+### `GET /.well-known/ai-policy.json`
+Returns the machine-readable AI access policy configuration, describing token mints, pricing, and default recipient addresses.
+
+### `GET /dashboard`
+Renders and serves the publisher metrics analytics panel interface (`dashboard.html`).
+
+### `GET /health`
+Returns a liveness confirmation payload indicating server status and uptime metrics.
+
 ---
 
 ## 📄 License
