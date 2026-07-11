@@ -1,6 +1,5 @@
 /**
  * walletAuth.js
- *
  * Stateless wallet authentication ("Sign-In With Solana" - SIWS).
  * Uses cryptographically signed, stateless HMAC envelopes for login challenges
  * and active sessions, eliminating database session tables for 0ms lookup latency.
