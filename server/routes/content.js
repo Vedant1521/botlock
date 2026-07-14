@@ -84,8 +84,8 @@ async function handle(req, res) {
 
   // ─── HTTP 402: NO PAYMENT ENVELOPE YET ──────────────────────────────────────
   if (!xPayment) {
-    // Generate price estimate based on path metadata (body content is hidden)
-    const scoringParams = buildScoringParams(req);
+    const content = getPageContent(req.path);
+    const scoringParams = buildScoringParams(req, content.body, content);
     const { price, score, breakdown } = getPriceForRequest(
       scoringParams,
       BASE_PRICE_MICRO_USDC,

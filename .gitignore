@@ -20,3 +20,7 @@ documentation/
 dist/
 .cache/
 .DS_Store
+
+# Solana keypairs (private keys — never commit)
+test/treasury-keypair.json
+*.keypair.json
