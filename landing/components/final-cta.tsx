@@ -24,7 +24,7 @@ export function FinalCTA() {
       className="relative py-24 sm:py-32 border-t border-gray-200 dark:border-border overflow-hidden"
     >
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="h-[400px] w-[600px] rounded-full bg-accent/10 blur-[120px]" />
+        <div className="h-[200px] w-[300px] sm:h-[300px] sm:w-[450px] lg:h-[400px] lg:w-[600px] rounded-full bg-accent/10 blur-[120px]" />
       </div>
 
       <div className="relative mx-auto max-w-3xl px-6 text-center">

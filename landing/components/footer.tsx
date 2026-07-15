@@ -40,7 +40,7 @@ export function Footer() {
   return (
     <footer className="border-t border-gray-200 dark:border-border bg-gray-50 dark:bg-surface">
       <div className="mx-auto max-w-7xl px-6 py-16">
-        <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+        <div className="grid gap-8 lg:gap-12 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent glow-accent-sm">

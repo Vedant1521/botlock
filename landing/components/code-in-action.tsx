@@ -155,7 +155,7 @@ export function CodeInAction() {
   const current = CODE[active];
 
   return (
-    <section className="py-24 border-t border-gray-200 dark:border-border">
+    <section className="py-24 sm:py-32 border-t border-gray-200 dark:border-border">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <motion.div
           ref={ref}
@@ -181,7 +181,7 @@ export function CodeInAction() {
           <div className="border-b border-gray-200 dark:border-border bg-gray-100 dark:bg-raised">
             <div className="flex items-center px-4 overflow-x-auto">
               {/* Publisher group */}
-              <div className="flex items-center gap-0.5 mr-4">
+              <div className="flex items-center gap-0.5 mr-4 shrink-0">
                 <span className="text-xs text-gray-400 dark:text-inkSubtle font-mono pr-3 border-r border-gray-200 dark:border-border mr-1 shrink-0">Publisher</span>
                 {publisherTabs.map((t) => (
                   <button
@@ -201,7 +201,7 @@ export function CodeInAction() {
               <div className="w-px h-5 bg-gray-200 dark:bg-border shrink-0" />
 
               {/* Agent group */}
-              <div className="flex items-center gap-0.5 ml-4">
+              <div className="flex items-center gap-0.5 ml-4 shrink-0">
                 <span className="text-xs text-gray-400 dark:text-inkSubtle font-mono pr-3 border-r border-gray-200 dark:border-border mr-1 shrink-0">Agent</span>
                 {agentTabs.map((t) => (
                   <button

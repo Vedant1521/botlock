@@ -33,7 +33,7 @@ export function HowItWorks() {
   const inView = useInView(ref, { once: true, margin: "-60px" });
 
   return (
-    <section id="how-it-works" className="py-24 border-t border-gray-200 dark:border-border bg-gray-50 dark:bg-surface">
+    <section id="how-it-works" className="py-24 sm:py-32 border-t border-gray-200 dark:border-border bg-gray-50 dark:bg-surface">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <motion.div
           ref={ref}
@@ -102,7 +102,7 @@ export function HowItWorks() {
           transition={{ duration: 0.5 }}
           className="mt-16 rounded-xl border border-gray-200 dark:border-border bg-gray-100 dark:bg-raised p-6 overflow-x-auto"
         >
-          <div className="min-w-[600px]">
+          <div className="min-w-[320px] sm:min-w-[600px]">
             <FlowDiagram />
           </div>
         </motion.div>

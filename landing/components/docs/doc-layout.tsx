@@ -95,6 +95,25 @@ export function DocLayout({ sdk, sections, children }: DocLayoutProps) {
           </nav>
         </aside>
 
+        {/* Mobile section nav */}
+        <nav className="lg:hidden sticky top-20 z-10 mb-6 rounded-lg border border-gray-200 dark:border-border bg-gray-50 dark:bg-surface p-3">
+          <select
+            className="w-full bg-transparent text-sm text-gray-600 dark:text-inkMuted focus:outline-none"
+            onChange={(e) => {
+              const id = e.target.value;
+              const el = document.getElementById(id);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            defaultValue={sections[0]?.id ?? ""}
+          >
+            {sections.map((s) => (
+              <option key={s.id} value={s.id} className="bg-white dark:bg-surface text-black dark:text-ink">
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </nav>
+
         {/* Main content */}
         <main className="flex-1 min-w-0 pt-10">
           {children}

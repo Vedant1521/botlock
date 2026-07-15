@@ -120,7 +120,7 @@ function TerminalDemo() {
       </div>
 
       {/* Floating badge */}
-      <div className="absolute -bottom-4 -right-4 bg-white dark:bg-surface border border-gray-200 dark:border-border rounded-lg px-3 py-2 shadow-lg">
+      <div className="absolute -bottom-4 right-0 sm:-right-4 bg-white dark:bg-surface border border-gray-200 dark:border-border rounded-lg px-3 py-2 shadow-lg">
         <div className="text-xs text-gray-500 dark:text-inkSubtle">settled on-chain</div>
         <div className="text-sm font-semibold text-emerald-500">+$0.018 USDC</div>
       </div>
@@ -145,13 +145,13 @@ export function Hero() {
 
       {/* Radial glow */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-        <div className="w-[600px] h-[600px] rounded-full bg-gradient-radial from-accent/5 via-transparent to-transparent" />
+        <div className="w-[300px] h-[300px] sm:w-[450px] sm:h-[450px] lg:w-[600px] lg:h-[600px] rounded-full bg-gradient-radial from-accent/5 via-transparent to-transparent" />
       </div>
 
       {/* Bottom fade */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-base pointer-events-none" />
 
-      <div className="relative mx-auto max-w-7xl px-6 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center py-20 flex-1">
+      <div className="relative mx-auto max-w-7xl px-6 grid lg:grid-cols-2 gap-8 lg:gap-12 lg:gap-16 items-center py-20 flex-1">
         {/* Left: Copy */}
         <div>
           <motion.div
@@ -170,7 +170,7 @@ export function Hero() {
             variants={fadeUp}
             initial="hidden"
             animate="show"
-            className="mt-6 font-serif italic text-4xl sm:text-5xl lg:text-6xl leading-[1.08] text-balance text-black dark:text-ink"
+            className="mt-6 font-serif italic text-3xl sm:text-4xl lg:text-5xl leading-[1.08] text-balance text-black dark:text-ink"
           >
             AI agents scrape your content.{" "}
             <span className="font-sans not-italic font-bold text-accent">Botlock makes them pay.</span>
@@ -224,7 +224,7 @@ export function Hero() {
 
       {/* Status bar */}
       <div className="relative border-t border-gray-200 dark:border-border bg-white/60 dark:bg-base/60 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-6 h-14 flex items-center justify-center sm:justify-between gap-6 text-xs text-gray-500 dark:text-inkSubtle">
+        <div className="mx-auto max-w-7xl px-6 h-14 flex flex-wrap items-center justify-center sm:justify-between gap-3 sm:gap-6 text-xs text-gray-500 dark:text-inkSubtle">
           <StatusItem icon={<Zap className="h-3.5 w-3.5 text-accent" />} label="Solana devnet + mainnet" />
           <StatusItem icon={<KeyRound className="h-3.5 w-3.5 text-accent" />} label="No API key required" />
           <StatusItem icon={<Scale className="h-3.5 w-3.5 text-accent" />} label="MIT license" />

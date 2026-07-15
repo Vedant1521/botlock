@@ -56,7 +56,7 @@ export function WhyBlockchain() {
           <h2 className="mt-4 font-serif text-3xl sm:text-4xl lg:text-5xl leading-tight text-black dark:text-ink text-balance">
             Why Solana and USDC?
           </h2>
-          <p className="mt-4 text-gray-600 dark:text-inkMuted">
+          <p className="mt-4 text-base sm:text-lg text-gray-600 dark:text-inkMuted">
             Micropayments need a chain that&apos;s fast and cheap enough to move
             cents without eating them in fees. Solana + USDC is that chain.
           </p>

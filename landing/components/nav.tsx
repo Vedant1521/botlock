@@ -49,7 +49,7 @@ export function Nav() {
           : "bg-transparent border-b border-transparent"
       }`}
     >
-      <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center justify-between">
         <a href="#" className="flex items-center gap-2.5 group">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent glow-accent-sm transition-transform group-hover:scale-105">
             <Shield className="h-5 w-5 text-black" strokeWidth={2.5} />
@@ -59,7 +59,7 @@ export function Nav() {
           </span>
         </a>
 
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden sm:flex items-center gap-8">
           {navLinks.map((link) => (
             <a
               key={link.href}
@@ -86,7 +86,7 @@ export function Nav() {
 
           <a
             href="/contact"
-            className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-border px-4 py-2 text-sm font-medium text-gray-600 dark:text-inkMuted hover:text-black dark:hover:text-ink hover:border-gray-300 dark:hover:border-borderStrong transition-colors"
+            className="hidden md:inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-border px-4 py-2 text-sm font-medium text-gray-600 dark:text-inkMuted hover:text-black dark:hover:text-ink hover:border-gray-300 dark:hover:border-borderStrong transition-colors"
           >
             Contact Sales
           </a>
@@ -95,14 +95,14 @@ export function Nav() {
             href="https://botlock-production.up.railway.app/dashboard"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-border px-4 py-2 text-sm font-medium text-gray-600 dark:text-inkMuted hover:text-black dark:hover:text-ink hover:border-gray-300 dark:hover:border-borderStrong transition-colors"
+            className="hidden md:inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-border px-4 py-2 text-sm font-medium text-gray-600 dark:text-inkMuted hover:text-black dark:hover:text-ink hover:border-gray-300 dark:hover:border-borderStrong transition-colors"
           >
             Dashboard
           </a>
 
           <a
             href="/docs/publisher"
-            className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-black hover:bg-accent-dark transition-colors"
+            className="hidden md:inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-black hover:bg-accent-dark transition-colors"
           >
             Get Started
           </a>
@@ -110,7 +110,7 @@ export function Nav() {
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
-            className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 dark:border-border text-black dark:text-ink"
+            className="sm:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 dark:border-border text-black dark:text-ink"
           >
             {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>

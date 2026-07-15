@@ -104,7 +104,7 @@ export function SDKs() {
                 onClick={() => copy(sdk.install)}
                 className="mt-6 flex items-center justify-between rounded-lg border border-gray-200 dark:border-border bg-gray-100 dark:bg-raised px-4 py-3 group hover:border-gray-300 dark:hover:border-borderStrong transition-colors"
               >
-                <code className="font-mono text-sm text-black dark:text-ink">
+                <code className="font-mono text-sm text-black dark:text-ink truncate min-w-0 flex-1">
                   $ {sdk.install}
                 </code>
                 {copied === sdk.install ? (

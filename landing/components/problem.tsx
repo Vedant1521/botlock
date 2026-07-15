@@ -41,15 +41,15 @@ export function Problem() {
           className="max-w-3xl"
         >
           <span className="section-label">The Problem</span>
-          <h2 className="mt-6 font-serif italic text-4xl sm:text-5xl lg:text-6xl text-black dark:text-ink leading-[1.05] text-balance">
+          <h2 className="mt-6 font-serif italic text-3xl sm:text-4xl lg:text-5xl text-black dark:text-ink leading-[1.05] text-balance">
             AI crawlers scrape billions of pages.
             <br />
             <span className="font-sans not-italic font-bold text-gray-400 dark:text-inkSubtle">Publishers get nothing.</span>
           </h2>
-          <p className="mt-6 text-lg text-gray-600 dark:text-inkMuted max-w-2xl leading-relaxed">
+          <p className="mt-6 text-base sm:text-lg text-gray-600 dark:text-inkMuted max-w-2xl leading-relaxed">
             Your content trains trillion-dollar models. You get server bills, bandwidth costs, and zero revenue. robots.txt can&apos;t stop them — but the HTTP protocol can.
           </p>
-          <p className="mt-4 text-lg text-gray-600 dark:text-inkMuted max-w-2xl leading-relaxed">
+          <p className="mt-4 text-base sm:text-lg text-gray-600 dark:text-inkMuted max-w-2xl leading-relaxed">
             <span className="font-semibold text-black dark:text-ink">Botlock changes the economics:</span> access requires payment, and payment is verified on-chain before a byte of content is served.
           </p>
         </motion.div>
