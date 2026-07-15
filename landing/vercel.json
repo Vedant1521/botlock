@@ -1,0 +1,10 @@
+{
+  "outputDirectory": "out",
+  "cleanUrls": true,
+  "trailingSlash": true,
+  "rewrites": [
+    { "source": "/contact", "destination": "/contact.html" },
+    { "source": "/docs/publisher", "destination": "/docs/publisher.html" },
+    { "source": "/docs/agent", "destination": "/docs/agent.html" }
+  ]
+}
