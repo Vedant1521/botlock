@@ -28,3 +28,7 @@ dist/
 # Solana keypairs (private keys — never commit)
 test/treasury-keypair.json
 *.keypair.json
+
+# Landing page dependencies
+landing/node_modules/
+landing/.next/
