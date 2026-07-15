@@ -1,492 +1,419 @@
 # Botlock
 
-[![Solana Web3](https://img.shields.io/badge/Solana-Web3.js-black?style=flat&logo=solana)](https://solana.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+> **robots.txt was a suggestion. This isn't.**
 
-**Botlock** is a decentralized, multi-tenant protocol-level AI agent paywall and request-gating gateway. It implements the **HTTP 402 (Payment Required)** status protocol, allowing digital content publishers to block automated AI crawlers (e.g., `GPTBot`, `ClaudeBot`, `Bytespider`) and enforce self-custody micro-transactions paid in **USDC** on the Solana blockchain—while maintaining a **0ms latency passthrough** for human browser visitors.
+Botlock makes AI agent content access **enforceable at the protocol layer**. Publishers drop in two lines of SDK to gate any route and receive USDC micropayments directly in their Solana wallet. AI agents pay automatically, or they don't get in.
 
 ---
 
-## 🏗️ Core Concept: The Cinema Ticket Analogy
+## Live Links
 
-To understand how Botlock secures content gates statelessly and validates transactions without performance bottlenecks, visualize the **Cinema Ticket with a Security Stamp** analogy:
+| Resource | URL |
+|---|---|
+| Facilitator API | _(deploy your own — see Local Quickstart)_ |
+| Publisher SDK (npm) | https://www.npmjs.com/package/botlock-sdk |
+| Agent SDK (npm) | https://www.npmjs.com/package/botlock-agent-sdk |
+| GitHub | https://github.com/Vedant1521/botlock |
+
+---
+
+## What This Solves
+
+AI crawlers (GPTBot, ClaudeBot, PerplexityBot) scrape web content at scale, train on it, and return zero revenue to publishers. `robots.txt` is advisory — it's ignored when economically convenient.
+
+Botlock attaches a **price tag** to bot access using HTTP 402 Payment Required. The server issues a signed payment challenge; the agent submits a USDC transfer on Solana and retries with a payment header. Content unlocks in ~400ms. USDC lands directly in the publisher's wallet — no platform cut, no intermediary.
+
+---
+
+## How It Works
 
 ```
-  AI Agent (Movie Guest)                             Facilitator Server (Gatekeeper)
-        |                                                           |
-        |--- 1. GET /articles/premium ----------------------------->|  (Recognizes Bot UA)
-        |                                                           |
-        |<-- 2. HTTP 402 + Laminated Ticket (Challenge Token) ------|  (HMAC challenge)
-        |                                                           |
-        |--- 3. Transfer USDC (On Solana Blockchain) -------------->|  [Solana Network]
-        |                                                           |
-        |--- 4. GET /articles/premium ----------------------------->|
-        |       Headers: X-PAYMENT, x-paywall-challenge             |  (Audit Stamp & Cache)
-        |                                                           |
-        |<-- 5. HTTP 200 + Premium Content -------------------------|  (Unlocks resource)
+AI Agent                    Publisher Server              Solana
+   │                              │                          │
+   │── GET /article ─────────────▶│                          │
+   │                              │  (bot fingerprint)       │
+   │◀── HTTP 402 ─────────────────│                          │
+   │    {                         │                          │
+   │      payTo: "<wallet ATA>",  │                          │
+   │      amount: 17688 µUSDC,    │                          │
+   │      challenge: "tok_9fK2"   │                          │
+   │    }                         │                          │
+   │                              │                          │
+   │── USDC transfer ────────────────────────────────────────▶│
+   │                              │                          │
+   │── GET /article ─────────────▶│                          │
+   │   X-PAYMENT: <signed_tx>     │── verify tx ────────────▶│
+   │   x-paywall-challenge: ...   │◀── confirmed ────────────│
+   │                              │                          │
+   │◀── HTTP 200 + content ───────│                          │
 ```
 
-1. **The Bot Arrives at the Gate**: An AI crawler tries to read a premium page (`GET /articles/premium`). The Server acts as a Cinema Gatekeeper. Recognizing the bot, it blocks access: *"You cannot enter for free. You must pay a fee of $0.01."*
-2. **The Server Generates and Hands Over a Laminated, Stamped Ticket**: The server generates a challenge token (the ticket) containing metadata: URL path, destination wallet address, price, and expiration time.
-   * **The Security Stamp (HMAC-SHA256)**: The server mixes this metadata with a private secret (`PAYWALL_CHALLENGE_SECRET`), producing a cryptographic signature. If the bot tries to modify any parameter (e.g., changing the price to `$0.00`), the signature breaks.
-   * **The Lamination (Base64URL Encoding)**: Characters like `/`, `+`, and `=` can break HTTP headers. The ticket is encoded into safe characters (`-`, `_`) so it travels securely. The server sends this token back in an **HTTP 402 Payment Required** response.
-3. **The Bot Pays the Solana Blockchain**: The bot reads the ticket, extracts the publisher's wallet address, and sends a transaction transferring `10,000 micro-USDC` ($0.01) on Solana. The network confirms the transfer and returns a unique **Transaction Signature** (the receipt).
-4. **The Bot Returns to the Gate**: The bot sends the request again, attaching the laminated ticket (`x-paywall-challenge`) and the transaction receipt (`X-PAYMENT`).
-5. **The Server Verifies Credentials and Grants Access**: The server checks the signature to confirm the ticket is genuine, checks the transaction receipt on the blockchain to verify payment, and cross-references its replay database cache to make sure the receipt wasn't already used. Once validated, it returns **HTTP 200 OK** and delivers the content.
+1. AI bot hits a protected route → server returns HTTP 402 with an x402 payment envelope
+2. Agent SDK reads the envelope, submits a USDC SPL transfer on Solana, retries with `X-PAYMENT` and `x-paywall-challenge` headers
+3. Facilitator verifies the on-chain transaction via Solana RPC — replays are blocked via Supabase cache
+4. Content unlocked. USDC lands in the publisher's wallet. No intermediary.
 
 ---
 
-## 🛠️ Tech Stack
+## Publisher SDK — Gate Your Content
 
-* **Runtime & Language**: Node.js (ES Modules), JavaScript (ES6+), native cryptography bindings
-* **Backend Framework**: Express.js
-* **Web3 / Blockchain**: Solana Web3.js SDK, SPL Token Protocol, Associated Token Accounts (ATA)
-* **Database & Storage**: Supabase (PostgreSQL) with custom B-Tree indexing
-* **Cryptography & Security**: HMAC-SHA256 (`crypto`), TweetNaCl (Ed25519 signature checks), Sign-In with Solana (SIWS)
-* **Local Caching & Performance**: `lru-cache` (DNS pooling), memory-mapped JSON-RPC connection caching
+```bash
+npm install botlock-sdk
+```
 
----
+```js
+import { createPaywall } from "botlock-sdk";
+import { expressMiddleware } from "botlock-sdk/express";
 
-## 🚀 Key Technical Features
+const paywall = createPaywall({
+  walletAddress: process.env.SOLANA_WALLET_ADDRESS,
+  network: "devnet",
+  protect: ["/articles/*", "/api/data/*"],
+  basePriceMicroUsdc: 1_000,
+});
 
-### 1. Composite Heuristic Bot-Detection Middleware
-Implemented in [aiDetector.js](file:///C:/Projects%20Placements/botlock/server/middleware/aiDetector.js):
-* **Multi-Signal Score Audit**: Analyzes User-Agent expressions, browser HTTP header fingerprints (checking for missing headers like `accept-language`, `sec-fetch-site`, or suspicious default wildcards `accept: */*`), and datacenter subnets.
-* **O(1) Bitwise Subnet Filter**: human visitors browse from consumer ISPs, not Cloud datacenters. The engine converts datacenter CIDRs (AWS, GCP, Azure, Cloudflare egress) into 32-bit unsigned integers, pre-computing subnet masks to run checks locally in **0ms** (no regex or string parsing overhead).
-* **Asynchronous Reverse DNS Cache**: Performs hostname checks to verify legitimate bots (e.g., Googlebot, Bingbot, Anthropic, OpenAI) against fake bots spoofing UAs. An in-memory **LRU Cache (2,000 max size, 1-hour TTL)** prevents DNS lookup bottlenecks.
+app.use(expressMiddleware(paywall));
 
-### 2. Stateless Cryptographic Gating (HMAC-SHA256)
-Implemented in [paymentChallenge.js](file:///C:/Projects%20Placements/botlock/server/services/paymentChallenge.js):
-* **Token Structure**: Generates challenge envelopes formatted as `[Base64URL(Payload)].[HMAC-SHA256(Payload, ServerSecret)]`.
-* **Tamper-Proof Binding**: Binds challenge tokens to specific URLs (resources), target wallets, prices, and networks. Any modification (e.g., changing the price to `$0.00`) breaks the signature, preventing token-forgery without database state queries.
-* **Timing-Safe Validator**: Prevents nanosecond-resolution timing attack hacks by validating signatures using `crypto.timingSafeEqual` byte-buffer checks.
+app.get("/articles/:slug", (req, res) => {
+  res.json({ content: "...", paid: true, sig: req.paywallPayment?.signature });
+});
+```
 
-### 3. Solana On-Chain USDC Verification
-Implemented in [verifyPayment.js](file:///C:/Projects%20Placements/botlock/server/services/verifyPayment.js) and [verifyPaymentForWallet.js](file:///C:/Projects%20Placements/botlock/server/services/verifyPaymentForWallet.js):
-* **Balance Delta Verification**: To avoid parsing unstable transaction instruction schemas, Botlock checks on-chain USDC Associated Token Account (ATA) balances before and after the transaction:
-  $$\Delta = \text{Balance}_{\text{post}} - \text{Balance}_{\text{pre}}$$
-  Asserts that $\Delta \geq \text{Required Price}$ to verify funding.
-* **Double-Spend Replay Cache**: Stores verified transaction signatures in PostgreSQL as `PRIMARY KEY` (backed by B-Tree indexes) to achieve $O(\log N)$ deduplication checks, mitigating transaction recycling vectors.
-
-### 4. Sponsored Onboarding ATA Pipeline
-Implemented in [v1.js](file:///C:/Projects%20Placements/botlock/server/routes/v1.js):
-* **Auto-Creation UX**: Detects if a publisher's wallet lacks a USDC account on-chain. The gateway automatically generates and broadcasts a `createAssociatedTokenAccountInstruction` transaction funded by a server-side fee-payer keypair, eliminating onboarding setup costs for publishers.
-* **Overlapping Broadcast Protection**: Prevents concurrent crawler requests from triggering parallel account creation transactions on-chain (which fails transactions and wastes gas) using an in-flight promise cache (`ataEnsureInFlight`).
-* **Economic Viability**: Sponsoring an ATA costs ~0.002 SOL (~$0.30 - $0.40 USD) in rent, which is recovered through transaction cuts or optional sponsorship settings.
-
-### 5. Stateless Sign-In with Solana (SIWS) Dashboard
-Implemented in [walletAuth.js](file:///C:/Projects%20Placements/botlock/server/services/walletAuth.js):
-* **Secure Session Cookies**: Implements Ed25519 cryptographically signed login challenges.
-* **Decentralized Sessions**: Sessions are wrapped in stateless HMAC tokens containing `{ wallet, exp }`, reducing session authorization lookups to **0ms** by bypassing SQL queries.
+Adapters included: **Express · Next.js App Router · Fastify · Cloudflare Workers**
 
 ---
 
-## 📈 The Heuristic Pricing Scorer
+## Agent SDK — Pay Paywalls Automatically
 
-To monetize content fairly without blocking SEO search indexers, the gateway runs a dynamic pricing engine on-the-fly inside [relevanceScorer.js](file:///C:/Projects%20Placements/botlock/server/services/relevanceScorer.js):
+```bash
+npm install botlock-agent-sdk @solana/web3.js @solana/spl-token @x402-solana/core
+```
 
-### 1. Valuation Scoring Math
-The core valuation score $S$ is a weighted composite mapped from **0.0 to 1.0**:
+```js
+import { createAgentPaywallClient, fromKeypairFile } from "botlock-agent-sdk";
 
-$$S = (A \times 0.35) + (R \times 0.35) + (F \times 0.20) + 0.10$$
+const client = createAgentPaywallClient({
+  network: "devnet",
+  signer: fromKeypairFile(),
+  maxAmountMicroUsdc: 10_000,
+  maxTotalMicroUsdc: 1_000_000,
+});
 
-Where:
-* **$A$ (Affinity Score)**: How much the scraping bot values this specific content type.
-* **$R$ (Content Richness)**: The length, complexity, and structural density of the text.
-* **$F$ (Freshness)**: The age of the article (newer content commands a premium).
-* **$0.10$**: A fixed baseline floor contribution to ensure no page returns a $0$ score.
+const res = await client.fetch("https://example.com/articles/ai-trends", {
+  headers: { "User-Agent": "GPTBot" },
+});
+const data = await res.json();
 
-The resulting score is mapped to a price multiplier:
+console.log("paid:", res.paywallPayment?.signature);
+console.log("total spend:", client.spend(), "µUSDC");
+```
 
-$$\text{Price Multiplier} = 1 + (S \times 9)$$
-
-This yields a base multiplier scaling linearly from **1.0× to 10.0×**.
-
----
-
-### 2. Heuristic Content Classifier
-To determine the Content Type (Prose, News, Technical, Dataset, Legal, Code), the system uses a dual-pass classifier:
-
-#### Pass 1: Path Rule Mapping
-First, the engine checks regex patterns against the request path. Path mappings take precedence:
-* `blog`/`articles`/`posts` $\rightarrow$ **Prose**
-* `news`/`press` $\rightarrow$ **News**
-* `docs`/`api`/`reference` $\rightarrow$ **Technical**
-* `data`/`research`/`datasets` $\rightarrow$ **Dataset**
-* `legal`/`terms`/`privacy` $\rightarrow$ **Legal**
-* `code`/`github`/`snippets` $\rightarrow$ **Code**
-
-#### Pass 2: Body Structural Feature Signals
-If the path is neutral (e.g. `/page/test`), the engine runs pattern-matching heuristics on the HTML/Markdown body to identify dominant structural features:
-
-| Feature Signal | Regex Pattern | Target Weight | Classified Category |
-| :--- | :--- | :--- | :--- |
-| **Code** | `` ```[\s\S]*?``` `` or `<code...>` | 1.4 | Code |
-| **Table** | `<table...>` or markdown pipes | 1.3 | Dataset |
-| **Datapoint** | Numbers containing %, USD, $, €, etc. | 1.2 | Dataset |
-| **Equation** | LaTeX double dollar signs `$$...$$` | 1.5 | Technical |
-| **Citation** | Scientific citations `[1]` or `(Author, 2026)` | 1.3 | Technical |
-| **Heading** | Markdown headers `#` or HTML `<h1>` | 1.1 | (Structure) |
-| **List** | Bullet points HTML `<ul>` / `<ol>` | 1.1 | (Structure) |
+LangChain integration available via `botlock-agent-sdk/langchain`.
 
 ---
 
-### 3. Bot Commercial Registry & Affinity Matrix
+## Run Locally
 
-#### Bot Multipliers
-Bots are categorized into tiers with base multipliers reflecting their commercial exploitation value:
-* **Googlebot / Bingbot** (SEO Search Indexers): **1.0×** (Minimum price to encourage SEO crawls).
-* **PerplexityBot / YouBot** (AI Search/Answer Engines): **1.8× – 2.0×** (Real-time answer citation value).
-* **GPTBot / ClaudeBot** (General LLMs): **2.5×** (High-quality consumer models).
-* **CCBot / MetaAI** (Bulk Training Crawlers): **2.7× – 2.8×** (Massive data ingestion for model training).
+### Prerequisites
 
-#### Content Affinity Matrix
-Different bot tiers value content types differently. For example, a bulk training crawler prioritizes datasets and prose, while a code interpreter bot prioritizes technical code. The system uses a 2D lookup matrix ($A$) to compute this match:
+- Node.js >= 18
+- A [Supabase](https://supabase.com) project (free tier)
+- A Solana wallet address (Phantom wallet)
+- Optional: funded devnet wallet for E2E testing
 
-| Bot Tier | Prose | Technical | Dataset | Code | Legal | News |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Training** | 1.0 | 0.9 | 1.0 | 0.8 | 0.7 | 0.9 |
-| **LLM** | 0.9 | 1.0 | 0.8 | 1.0 | 0.6 | 0.8 |
-| **Answer** | 0.8 | 0.7 | 0.6 | 0.6 | 0.5 | 1.0 |
-| **Extraction**| 0.6 | 0.5 | 1.0 | 0.4 | 0.8 | 0.6 |
-| **Search** | 0.5 | 0.5 | 0.4 | 0.5 | 0.4 | 0.7 |
+### 1. Clone and Install
+
+```bash
+git clone https://github.com/Vedant1521/botlock.git
+cd botlock
+npm install
+```
+
+### 2. Set Up Supabase
+
+Open the [Supabase SQL editor](https://app.supabase.com) and run the contents of `supabase/schema.sql`. This creates:
+- `payments` — payment analytics, keyed by wallet address
+- `verified_tx_cache` — replay protection (one Solana tx → one unlock)
+
+### 3. Configure Environment
+
+Copy `.env.example` to `.env` and fill in:
+
+```bash
+WALLET_ADDRESS=YourSolanaWalletBase58...
+SOLANA_NETWORK=devnet
+SOLANA_RPC_URL=https://api.devnet.solana.com
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+PAYWALL_CHALLENGE_SECRET=<32-byte-hex>
+PAYWALL_AUTH_SECRET=<32-byte-hex>
+PAYWALL_AUTH_DOMAIN=localhost:3000
+MOCK_VERIFICATION="true"
+PORT=3000
+```
+
+> Generate HMAC secrets with: `openssl rand -hex 32`
+
+### 4. Start the Server
+
+```bash
+npm start
+# Server running at http://localhost:3000
+```
+
+### 5. Open the Dashboard
+
+Visit http://localhost:3000/dashboard — connect your Phantom wallet to view real-time analytics.
 
 ---
 
-### 4. Exclusivity & Demand Modifiers
-The composite price multiplier is multiplied by two environmental modifiers:
+## Testing
 
-1. **Exclusivity Modifier**:
-   * **`public`**: **1.0×** (Standard open page).
-   * **`metered`**: **1.4×** (Limited free views, then gated).
-   * **`subscriber`**: **1.8×** (Typically requires a paid user registration).
-   * **`proprietary`**: **2.5×** (Highly unique research, private datasets).
-2. **Demand Modifier**:
-   Determined by monthly page views from analytics. High-demand pages command a premium:
-   * $>1,000,000$ views $\rightarrow$ **1.5×**
-   * $>100,000$ views $\rightarrow$ **1.3×**
-   * $>10,000$ views $\rightarrow$ **1.15×**
-   * $<1,000$ views $\rightarrow$ **0.9×** (Slight discount to incentivize exploration).
+### Smoke Tests (Mock Mode)
 
-The final calculated price is clamped to a maximum ceiling of **20×** of the floor price to prevent runaway pricing anomalies.
+```bash
+# Health check
+curl http://localhost:3000/health
+
+# Human request — passes through (200)
+curl http://localhost:3000/articles/test
+
+# AI bot request — blocked with 402
+curl -A "GPTBot/1.0" http://localhost:3000/articles/test
+
+# Run full smoke test suite
+npm run test:ai
+```
+
+### Mock Unlock Test
+
+```bash
+# Tests the full unlock cycle with a mock payment (no blockchain needed)
+node test/mock-unlock.js
+```
+
+### End-to-End Devnet Test
+
+```bash
+# Prerequisites: funded devnet wallet at ~/.config/solana/id.json
+# Get devnet SOL:  solana airdrop 2 --url devnet
+# Get devnet USDC: https://faucet.circle.com
+
+# Set MOCK_VERIFICATION="false" in .env
+npm run test:e2e
+```
+
+The test sends real USDC on Solana devnet, verifies the on-chain transaction, and unlocks the content.
 
 ---
 
-## 📊 Database Schema
+## Project Structure
 
-The database relies on PostgreSQL (Supabase) to store payment logs and enforce double-spend protection. Find the script in [schema.sql](file:///C:/Projects%20Placements/botlock/supabase/schema.sql):
+```
+botlock/
+├── packages/
+│   ├── botlock-sdk/                # Publisher SDK (npm)
+│   │   └── src/
+│   │       ├── index.js                # createPaywall()
+│   │       ├── core/
+│   │       │   ├── paywall.js          # framework-agnostic orchestrator
+│   │       │   ├── botDetector.js      # multi-signal bot scoring (33 patterns)
+│   │       │   └── client.js           # facilitator API client
+│   │       └── adapters/
+│   │           ├── express.js
+│   │           ├── nextjs.js
+│   │           ├── fastify.js
+│   │           └── cloudflare.js
+│   └── botlock-agent-sdk/          # Agent SDK (npm)
+│       └── src/
+│           ├── index.js                # createAgentPaywallClient()
+│           ├── core/
+│           │   ├── client.js           # fetch() wrapper + payment loop
+│           │   ├── payment.js          # USDC SPL transfer builder
+│           │   ├── signer.js           # keypair helpers
+│           │   ├── guards.js           # safety policy + budget enforcement
+│           │   ├── spendTracker.js     # spend tracking + coalescing
+│           │   └── errors.js           # typed error classes
+│           └── tools/
+│               └── langchain.js        # LangChain tool wrapper
+│
+├── server/                         # Facilitator server
+│   ├── index.js                    # Express entry point
+│   ├── routes/
+│   │   ├── v1.js                   # /v1/challenge, /v1/verify, /v1/auth/*, /v1/dashboard
+│   │   ├── content.js              # catch-all content gate (402 for bots, 200 for humans)
+│   │   ├── dashboard.js            # serves dashboard.html
+│   │   └── policy.js               # /.well-known/ai-policy.json
+│   ├── middleware/
+│   │   └── aiDetector.js           # composite bot scoring middleware
+│   └── services/
+│       ├── verifyPayment.js        # single-tenant on-chain USDC verification
+│       ├── verifyPaymentForWallet.js # multi-tenant verification
+│       ├── paymentChallenge.js     # HMAC-SHA256 challenge token issuance
+│       ├── walletAuth.js           # Sign-In with Solana (SIWS)
+│       └── relevanceScorer.js      # dynamic pricing engine
+│
+├── client/
+│   ├── dashboard.html              # Publisher analytics dashboard (SIWS + Phantom)
+│   ├── index.html                  # Server gateway homepage
+│   └── policy.html                 # Human-readable AI access policy
+│
+├── supabase/
+│   └── schema.sql                  # Postgres schema
+│
+└── test/
+    ├── simulate.js                 # Smoke test suite
+    ├── mock-unlock.js              # Mock unlock test
+    ├── e2e.js                      # End-to-end devnet test
+    └── generate-wallet.js          # Solana keypair generator
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Facilitator server | Node.js (ES Modules), Express |
+| Blockchain | Solana (devnet + mainnet-beta) |
+| Token | USDC SPL token |
+| Payment protocol | x402 (`@x402-solana/core`) |
+| Database | Supabase Postgres |
+| Dashboard auth | Sign-In with Solana (stateless HMAC-signed sessions) |
+| Bot detection | 33 UA patterns + header fingerprint + datacenter CIDR + reverse DNS |
+| SDKs | `botlock-sdk` (zero deps) + `botlock-agent-sdk` (peer deps) |
+
+---
+
+## Key Technical Features
+
+### Bot Detection (0ms for humans)
+
+Multi-signal scoring with **33 User-Agent regex patterns**, browser header fingerprint analysis, O(1) bitwise datacenter IP CIDR matching, and LRU-cached reverse DNS verification. Humans pass through with zero network overhead — scoring is entirely local.
+
+| Signal | Weight | Examples |
+|--------|--------|---------|
+| User-Agent pattern | High | `GPTBot`, `ClaudeBot`, `PerplexityBot`, `CCBot` |
+| Missing browser headers | Medium | No `Accept-Language`, no `Sec-Fetch-*` |
+| Datacenter IP CIDR | Medium | AWS, GCP, Azure, Cloudflare ranges |
+| Reverse DNS | Medium | Hostname resolves to known crawler infra |
+
+### Dynamic Pricing Engine
+
+Prices calculated per-request based on:
+- **Bot tier** (GPTBot = 2.5x, Googlebot = free)
+- **Content type** (code, dataset, prose, news)
+- **Content richness** (log-scale word count, code blocks, tables, equations)
+- **Page freshness** (newer content costs more)
+- **Exclusivity** (public = 1x, proprietary = 2.5x)
+- **Traffic demand** (monthly views)
+
+Range: $0.001 to $0.02 per crawl. Googlebot is whitelisted for free to preserve SEO.
+
+### On-Chain Verification
+
+Every payment verified by querying Solana RPC directly:
+- Pre/post token balance delta calculation
+- Transaction age check (under 5 minutes)
+- Replay protection via Postgres B-Tree indexed signature cache
+- Payer wallet identification from balance changes
+
+### Stateless SIWS Dashboard
+
+Publishers authenticate via Phantom wallet (Sign-In with Solana). No passwords, no database sessions — HMAC-signed session tokens verified in 0ms. Dashboard auto-refreshes every 15 seconds showing earnings, payment history, bot breakdowns, and network status.
+
+### Sponsored ATA Onboarding
+
+New publishers without a USDC token account get one auto-created by the server's fee-payer wallet (~0.002 SOL). Concurrent request race conditions are prevented via in-flight promise caching (`ataEnsureInFlight`).
+
+---
+
+## API Reference
+
+### SDK Endpoints (stateless, unauthenticated)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/v1/challenge` | Issue an x402 payment challenge for a wallet + resource |
+| `POST` | `/v1/verify` | Verify an on-chain USDC payment against a challenge |
+| `GET` | `/v1/wallet/treasury` | Look up the USDC ATA for a wallet address |
+
+### Dashboard (Sign-In with Solana)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/v1/auth/nonce` | Request a SIWS challenge nonce |
+| `POST` | `/v1/auth/verify` | Submit signed nonce, receive 24h session token |
+| `GET` | `/v1/dashboard` | Fetch payment analytics for the authenticated wallet |
+
+### Utility
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/health` | Health check — `{ status: "ok", uptime: N }` |
+| `GET` | `/.well-known/ai-policy.json` | Machine-readable pricing policy |
+| `GET` | `/dashboard` | Publisher analytics dashboard UI |
+| `GET` | `/` | Server gateway homepage |
+
+---
+
+## Integration Without npm
+
+The SDK is a convenience wrapper. Publishers using Python, Go, or any language can call the REST API directly:
+
+```python
+import requests
+
+# Issue challenge
+resp = requests.post("https://your-server.com/v1/challenge", json={
+    "walletAddress": "ABC...",
+    "resource": "/articles/test",
+    "network": "devnet",
+})
+challenge = resp.json()
+
+# After paying USDC on Solana, verify:
+verify = requests.post("https://your-server.com/v1/verify", json={
+    "walletAddress": "ABC...",
+    "paymentHeader": payment_header,
+    "resource": "/articles/test",
+    "challengeToken": challenge["crawlpay"]["challenge"]["token"],
+    "requiredMicroUsdc": int(challenge["accepts"][0]["maxAmountRequired"]),
+})
+```
+
+See `documentation/integration_methods.md` for full cross-language examples.
+
+---
+
+## Database Schema
 
 ```sql
--- 1. Payments Analytics Table
 CREATE TABLE IF NOT EXISTS public.payments (
   id              BIGSERIAL PRIMARY KEY,
-  tx              TEXT NOT NULL UNIQUE,                -- Solana Signature (Unique receipt)
-  wallet_address  TEXT NOT NULL,                       -- Target Publisher wallet
-  network         TEXT NOT NULL,                       -- devnet / mainnet-beta
-  bot_name        TEXT,                                -- Bot type classification
-  user_agent      TEXT,                                -- RAW HTTP User Agent
-  path            TEXT,                                -- Gated resource URL path
-  page_hash       TEXT,
-  lamports        BIGINT,                              -- Micro-USDC paid
-  relevance_score INTEGER,                             -- Calculated valuation score (1-10)
-  content_type    TEXT,                                -- Classified content category
+  tx              TEXT NOT NULL UNIQUE,
+  wallet_address  TEXT NOT NULL,
+  network         TEXT NOT NULL,
+  bot_name        TEXT,
+  user_agent      TEXT,
+  path            TEXT,
+  lamports        BIGINT,
+  relevance_score INTEGER,
+  content_type    TEXT,
   bot_multiplier  DOUBLE PRECISION,
   exclusivity_mod DOUBLE PRECISION,
   timestamp       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Indexing optimizations for analytics reads
-CREATE INDEX IF NOT EXISTS payments_timestamp_idx ON public.payments (timestamp DESC);
-CREATE INDEX IF NOT EXISTS payments_path_idx      ON public.payments (path);
-CREATE INDEX IF NOT EXISTS payments_bot_name_idx  ON public.payments (bot_name);
-CREATE INDEX IF NOT EXISTS payments_wallet_idx    ON public.payments (wallet_address);
-
--- 2. Consolidated Transaction Replay Cache
 CREATE TABLE IF NOT EXISTS public.verified_tx_cache (
-  tx              TEXT PRIMARY KEY,                    -- Unique Solana signature (B-Tree Index)
+  tx              TEXT PRIMARY KEY,
   wallet_address  TEXT NOT NULL,
   cached_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Indexing optimizations for validation caching
-CREATE INDEX IF NOT EXISTS verified_tx_cache_wallet_idx ON public.verified_tx_cache (wallet_address);
 ```
 
 ---
 
-## ⚙️ Environment Variables
+## License
 
-Create a `.env` file in the root directory:
-
-```env
-PORT=3000
-
-# Cryptographic secrets
-PAYWALL_CHALLENGE_SECRET="your-super-secret-hmac-key"
-PAYWALL_AUTH_SECRET="your-super-secret-siws-auth-key"
-PAYWALL_AUTH_DOMAIN="localhost"
-
-# Supabase Configurations
-SUPABASE_URL="https://your-project.supabase.co"
-SUPABASE_SERVICE_ROLE_KEY="your-service-role-admin-key"
-
-# Live Solana Configurations (Set MOCK_VERIFICATION=true to test offline)
-SOLANA_NETWORK="devnet"
-SOLANA_RPC_URL="https://api.devnet.solana.com"
-WALLET_ADDRESS="YourPublisherWalletAddressHere"
-
-# Optional: Server keypair for auto-sponsoring USDC ATA creation
-# Expressed as either base58 string or a raw JSON array of bytes
-FACILITATOR_FEE_PAYER_SECRET_KEY="[12,45,...]" 
-
-# Local testing toggle (Set to true to skip Solana RPC network validations)
-MOCK_VERIFICATION="true"
-```
-
----
-
-## 💻 Local Quickstart
-
-### 1. Installation
-```bash
-# Clone the repository
-git clone https://github.com/Vedant1521/botlock.git
-cd botlock
-
-# Install dependencies
-npm install
-```
-
-### 2. Generate a Test Wallet
-If you don't have a Solana wallet ready, use the helper script [generate-wallet.js](file:///C:/Projects%20Placements/botlock/test/generate-wallet.js):
-```bash
-npm run generate-wallet
-```
-This generates a keypair, prints the keys, and saves it to `test/treasury-keypair.json`. Paste the printed `Public Key` into your `.env` as the `WALLET_ADDRESS`.
-
-### 3. Running the Server
-```bash
-# Run in development mode (hot reloading)
-npm run dev
-```
-
----
-
-## 🧪 Interactive Testing & Verification Suite
-
-### A. Manual Gated Content Testing (Mock Mode)
-When `MOCK_VERIFICATION="true"`, you can simulate the gating loop locally:
-
-**Step 1: Request a gated content page as an AI Bot**
-To simulate being an AI bot (like GPTBot), send a request with a crawler User-Agent:
-```bash
-curl -i http://localhost:3000/articles/test \
-  -H "User-Agent: Mozilla/5.0 (compatible; GPTBot/1.0; +https://openai.com/gptbot)"
-```
-*The server intercepts the crawler, calculates a dynamic price estimate (e.g. 10,000 micro-USDC based on page metrics), and returns an **HTTP 402 Payment Required** response with the challenge token.*
-
-**Step 2: Request a challenge envelope explicitly**
-You can also generate a challenge envelope via the challenge API:
-```bash
-curl -X POST http://localhost:3000/v1/challenge \
-  -H "Content-Type: application/json" \
-  -d '{"walletAddress": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU", "resource": "/articles/test", "basePriceMicroUsdc": 1000}'
-```
-*Note the returned `"challenge.token"`.*
-
-**Step 3: Verify the payment using a mock signature**
-Submit the request again, attaching the challenge token in the `x-paywall-challenge` header, and the payment signature inside the `X-Payment` envelope header (Base64URL-encoded JSON payload):
-```bash
-curl http://localhost:3000/articles/test \
-  -H "User-Agent: Mozilla/5.0 (compatible; GPTBot/1.0; +https://openai.com/gptbot)" \
-  -H "x-paywall-challenge: YOUR_CHALLENGE_TOKEN_FROM_STEP_2" \
-  -H "X-Payment: exact; payload=eyJzaWduYXR1cmUiOiJtb2NrX3R4Xzk5OTk5OSJ9"
-```
-*The server validates the signature, caches the mock signature to block replays, and returns an **HTTP 200 OK** response with the unlocked page content!*
-
----
-
-### B. Automated End-to-End Devnet Testing (`npm run test:e2e`)
-To test the complete blockchain lifecycle, set `MOCK_VERIFICATION="false"` and configure `SOLANA_RPC_URL`.
-The E2E script [e2e.js](file:///C:/Projects%20Placements/botlock/test/e2e.js) runs the following pipeline:
-1. Validates that the local CLI wallet (`~/.config/solana/id.json`) has SOL (for fees) and devnet USDC (Circle Faucet: https://faucet.circle.com/).
-2. Requests the gated page `/articles/test` as a bot, receiving the HTTP 402 and the publisher's receiving ATA.
-3. Builds, signs, and broadcasts an on-chain USDC transfer transaction to Solana.
-4. Serializes the transaction into an x402 header envelope.
-5. Submits the payment headers to the verifier, unlocking the content and recording metrics to Supabase.
-```bash
-npm run test:e2e
-```
-
----
-
-### C. Request Simulation Suite (`npm run test:ai`)
-To run a batch of simulated request states (Human visitor, unpaid bot, bot with invalid signature, policy endpoints, health checks), run the simulator [simulate.js](file:///C:/Projects%20Placements/botlock/test/simulate.js):
-```bash
-npm run test:ai
-```
-
----
-
-## 📈 API Reference
-
-### `POST /v1/challenge`
-Generates a signed HMAC challenge envelope indicating the price, currency, and destination wallet for the requested page.
-* **Body**:
-  ```json
-  {
-    "walletAddress": "SolanaPublicKey",
-    "resource": "/gated-page-url",
-    "basePriceMicroUsdc": 1000,
-    "network": "devnet",
-    "ensureTreasuryAta": true
-  }
-  ```
-* **Response**:
-  ```json
-  {
-    "x402Version": 1,
-    "accepts": [
-      {
-        "scheme": "exact",
-        "network": "solana-devnet",
-        "maxAmountRequired": "1000",
-        "resource": "/gated-page-url",
-        "payTo": "ATA_Address_Here",
-        "asset": "USDC_Mint_Address"
-      }
-    ],
-    "crawlpay": {
-      "challenge": {
-        "token": "challenge_token_here",
-        "nonce": "nonce_here",
-        "expires_at": "ISO_Timestamp"
-      }
-    }
-  }
-  ```
-
----
-
-### `POST /v1/verify`
-Audits the transaction signature, confirms the USDC transfer to the correct ATA, and commits the signature to the replay cache database.
-* **Body**:
-  ```json
-  {
-    "walletAddress": "SolanaPublicKey",
-    "resource": "/gated-page-url",
-    "paymentHeader": "exact; payload=[Base64URL_Payment_Payload]",
-    "challengeToken": "[Base64URL_Challenge].[HMAC]",
-    "requiredMicroUsdc": 1000
-  }
-  ```
-* **Response (Success)**:
-  ```json
-  {
-    "verified": true,
-    "received": 1000,
-    "signature": "Solana_Tx_Signature",
-    "payer": "Bot_Wallet_Address",
-    "network": "devnet"
-  }
-  ```
-
----
-
-### `POST /v1/auth/nonce`
-Initiates a passwordless, decentralized wallet-ownership check (SIWS).
-* **Body**:
-  ```json
-  { "walletAddress": "SolanaPublicKey" }
-  ```
-* **Response**:
-  ```json
-  {
-    "token": "Opaque_Challenge_Envelope",
-    "message": "Sign in message text containing wallet, nonce, and timestamps...",
-    "expiresAt": "ISO_Timestamp"
-  }
-  ```
-
----
-
-### `POST /v1/auth/verify`
-Verifies the cryptographic Ed25519 signature of the nonce and mints a stateless session token.
-* **Body**:
-  ```json
-  {
-    "walletAddress": "SolanaPublicKey",
-    "message": "Sign in message text",
-    "signature": "Base58_Encoded_Signature",
-    "token": "Opaque_Challenge_Envelope"
-  }
-  ```
-* **Response**:
-  ```json
-  {
-    "session": "Stateless_Session_Token_Envelope",
-    "walletAddress": "SolanaPublicKey",
-    "expiresAt": "ISO_Timestamp"
-  }
-  ```
-
----
-
-### `GET /v1/dashboard`
-Fetches analytics metrics for the logged-in publisher.
-* **Headers**: `Authorization: Bearer <session>`
-* **Response**:
-  ```json
-  {
-    "wallet": { "address": "SolanaPublicKey" },
-    "total": 42,
-    "total_lamports": 42000,
-    "payments": [
-      {
-        "txSignature": "tx_hash",
-        "botName": "GPTBot",
-        "userAgent": "Mozilla...",
-        "path": "/articles/test",
-        "lamports": 1000,
-        "network": "devnet",
-        "timestamp": "ISO_Timestamp"
-      }
-    ]
-  }
-  ```
-
----
-
-### `GET /v1/wallet/treasury`
-Convenience endpoint allowing developers to query and verify their USDC ATA destination before deploying live integrations.
-* **Query Params**: `?walletAddress=...&network=...`
-* **Response**:
-  ```json
-  {
-    "walletAddress": "Publisher_Wallet_Address",
-    "network": "devnet",
-    "usdcMint": "USDC_Mint_Address",
-    "treasuryAta": "Derived_ATA_Address"
-  }
-  ```
-
----
-
-### `GET /.well-known/ai-policy.json`
-Returns the machine-readable AI access policy configuration, describing token mints, pricing, and default recipient addresses. Conforms to the standard X402 schema.
-
----
-
-### `GET /dashboard`
-Renders and serves the publisher metrics analytics panel interface (`dashboard.html`).
-
----
-
-### `GET /health`
-Returns a liveness confirmation payload indicating server status and uptime metrics.
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT
