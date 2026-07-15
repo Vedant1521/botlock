@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Botlock · Publisher Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..200" />
+
+  <style>
+    /* ── Tokens ── */
+    :root {
+      --bg: #000000;
+      --bg-secondary: #0a0a0a;
+      --surface: #111111;
+      --surface-hover: #1a1a1a;
+      --surface-active: #222222;
+      --border: #1e1e1e;
+      --border-hover: #2a2a2a;
+      --text: #ffffff;
+      --text-secondary: #a1a1a1;
+      --text-tertiary: #666666;
+      --text-faint: #404040;
+      --white: #ffffff;
+      --white-90: rgba(255,255,255,0.9);
+      --white-70: rgba(255,255,255,0.7);
+      --white-50: rgba(255,255,255,0.5);
+      --white-20: rgba(255,255,255,0.2);
+      --white-10: rgba(255,255,255,0.1);
+      --white-05: rgba(255,255,255,0.05);
+      --white-03: rgba(255,255,255,0.03);
+
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+      --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+      --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { background: var(--bg); }
+
+    body {
+      font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-size: 14px;
+      line-height: 1.5;
+      font-feature-settings: "cv01", "cv02", "cv03", "cv04";
+    }
+
+    /* ── Top Nav Bar ── */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .navbar-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .nav-brand-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .nav-brand-icon .material-symbols-rounded {
+      font-size: 18px;
+      color: #000;
+      font-variation-settings: 'FILL' 1, 'wght' 600;
+    }
+
+    .nav-brand-text {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Wallet Pill ── */
+    .wallet-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: "Geist Mono", monospace;
+      font-size: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      border-radius: 8px;
+      padding: 7px 12px;
+      transition: border-color 200ms var(--ease-out);
+    }
+
+    .wallet-pill:hover {
+      border-color: var(--border-hover);
+    }
+
+    .wallet-pill .material-symbols-rounded {
+      font-size: 15px;
+      color: var(--text-tertiary);
+      font-variation-settings: 'FILL' 0, 'wght' 400;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      position: relative;
+      isolation: isolate;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      height: 36px;
+      padding: 0 16px;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 160ms var(--ease-out), background-color 200ms var(--ease-out), border-color 200ms var(--ease-out);
+      white-space: nowrap;
+    }
+
+    .btn::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: currentColor;
+      opacity: 0;
+      transition: opacity 100ms var(--ease-standard);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .btn > * { position: relative; z-index: 1; }
+    .btn:hover::after { opacity: 0.08; }
+    .btn:active::after { opacity: 0.12; }
+    .btn:active { transform: scale(0.97); }
+    .btn:focus-visible { outline: 2px solid var(--white-50); outline-offset: 2px; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn:disabled::after { display: none; }
+
+    .btn--primary {
+      background: var(--white);
+      color: #000;
+    }
+
+    .btn--primary:hover {
+      background: var(--white-90);
+    }
+
+    .btn--secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn--secondary:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+    }
+
+    .btn--ghost {
+      background: transparent;
+      color: var(--text-secondary);
+    }
+
+    .btn--ghost:hover {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .btn .material-symbols-rounded {
+      font-size: 16px;
+      font-variation-settings: 'FILL' 0, 'wght' 400;
+    }
+
+    .btn--lg {
+      height: 44px;
+      padding: 0 24px;
+      font-size: 14px;
+      border-radius: 10px;
+    }
+
+    /* ── Layout ── */
+    .main-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    .page-header {
+      margin-bottom: 40px;
+    }
+
+    .page-header h2 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.8px;
+      line-height: 1.2;
+    }
+
+    .page-header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+    }
+
+    /* ── Auth View ── */
+    .auth-view {
+      min-height: calc(100vh - 56px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      opacity: 0;
+      transform: scale(0.96);
+      animation: authEnter 400ms var(--ease-out) forwards;
+    }
+
+    @keyframes authEnter {
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .auth-logo {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 24px;
+      border-radius: 14px;
+      background: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .auth-logo .material-symbols-rounded {
+      font-size: 28px;
+      color: #000;
+      font-variation-settings: 'FILL' 1, 'wght' 600;
+    }
+
+    .auth-card h2 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.4px;
+      margin-bottom: 8px;
+    }
+
+    .auth-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    .auth-card .btn {
+      width: 100%;
+    }
+
+    .auth-error {
+      color: #ff4444;
+      font-size: 13px;
+      margin-top: 16px;
+      min-height: 18px;
+    }
+
+    .auth-error a {
+      color: var(--text);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* ── Stats Grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: cardSlide 350ms var(--ease-out) forwards;
+    }
+
+    .stat-card:nth-child(1) { animation-delay: 0ms; }
+    .stat-card:nth-child(2) { animation-delay: 40ms; }
+    .stat-card:nth-child(3) { animation-delay: 80ms; }
+    .stat-card:nth-child(4) { animation-delay: 120ms; }
+
+    @keyframes cardSlide {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stat-card .stat-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .stat-card .stat-value {
+      font-size: 30px;
+      font-weight: 600;
+      letter-spacing: -0.8px;
+      margin-top: 8px;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-card .stat-sub {
+      font-size: 11px;
+      color: var(--text-faint);
+      margin-top: 6px;
+    }
+
+    /* ── Content Grid ── */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 12px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .panel-header .material-symbols-rounded {
+      font-size: 17px;
+      color: var(--text-tertiary);
+      font-variation-settings: 'FILL' 0, 'wght' 400;
+    }
+
+    .panel-header h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.1px;
+    }
+
+    /* ── Table ── */
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-faint);
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tbody tr {
+      transition: background-color 100ms var(--ease-standard);
+    }
+
+    tbody tr:hover {
+      background-color: var(--surface-hover);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .mono {
+      font-family: "Geist Mono", monospace;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .amount {
+      font-family: "Geist Mono", monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .timestamp {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* ── Bot Badge ── */
+    .bot-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--white-05);
+      border: 1px solid var(--white-10);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .bot-badge .material-symbols-rounded {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      font-variation-settings: 'FILL' 1, 'wght' 400;
+    }
+
+    /* ── Top List ── */
+    .top-list {
+      list-style: none;
+    }
+
+    .top-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .top-list li:last-child {
+      border-bottom: none;
+    }
+
+    .top-list .item-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .top-list .count-badge {
+      font-family: "Geist Mono", monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--white-05);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .section-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0;
+    }
+
+    /* ── Empty State ── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 16px;
+    }
+
+    .empty-state .material-symbols-rounded {
+      font-size: 36px;
+      color: var(--text-faint);
+      font-variation-settings: 'FILL' 0, 'wght' 300;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .empty-state p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state .empty-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    /* ── Loading Spinner ── */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0, 0, 0, 0.15);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 600ms linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Error Text ── */
+    .error-text {
+      color: #ff4444;
+      font-size: 13px;
+      min-height: 18px;
+      margin-top: 16px;
+    }
+
+    /* ── Utilities ── */
+    .hidden { display: none !important; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .content-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .main-content { padding: 24px 16px 48px; }
+      .navbar-inner { padding: 0 16px; }
+      .page-header h2 { font-size: 22px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navbar ── -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="/" class="nav-brand">
+        <div class="nav-brand-icon">
+          <span class="material-symbols-rounded">shield</span>
+        </div>
+        <span class="nav-brand-text">Botlock</span>
+      </a>
+      <div class="nav-right" id="nav-right">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Auth View ── -->
+  <section id="auth-view" class="auth-view">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="material-symbols-rounded">shield</span>
+      </div>
+      <h2>Sign in with Solana</h2>
+      <p>Connect your wallet and sign a one-time message to view your analytics. We never see your private key.</p>
+      <button class="btn btn--primary btn--lg" id="connect-btn" type="button">
+        <span class="material-symbols-rounded">wallet</span>
+        <span>Connect Wallet</span>
+      </button>
+      <div class="auth-error" id="auth-error"></div>
+    </div>
+  </section>
+
+  <!-- ── Dashboard View ── -->
+  <section id="dashboard-view" class="hidden">
+
+    <div class="main-content">
+
+      <div class="page-header">
+        <h2>Dashboard</h2>
+        <p>Track revenue, bots, and paid content for your wallet</p>
+      </div>
+
+      <section class="stats-grid">
+        <article class="stat-card">
+          <div class="stat-label">Total Earnings</div>
+          <div class="stat-value" id="total-earnings">—</div>
+          <div class="stat-sub">micro-USDC</div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-label">Earnings (USDC)</div>
+          <div class="stat-value" id="total-earnings-usdc">—</div>
+          <div class="stat-sub">converted</div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-label">Payments</div>
+          <div class="stat-value" id="payments-count">—</div>
+          <div class="stat-sub">total transactions</div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-label">Unique Bots</div>
+          <div class="stat-value" id="unique-bots">—</div>
+          <div class="stat-sub">distinct crawlers</div>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel">
+          <div class="panel-header">
+            <span class="material-symbols-rounded">history</span>
+            <h3>Recent Payments</h3>
+          </div>
+          <div class="table-wrap" id="payments-table-wrap"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <span class="material-symbols-rounded">leaderboard</span>
+            <h3>Top Bots</h3>
+          </div>
+          <ul class="top-list" id="top-bots-wrap"></ul>
+
+          <div class="section-divider"></div>
+
+          <div class="panel-header">
+            <span class="material-symbols-rounded">web</span>
+            <h3>Top Pages</h3>
+          </div>
+          <ul class="top-list" id="top-pages-wrap"></ul>
+        </article>
+      </section>
+
+      <div class="error-text" id="error-text"></div>
+    </div>
+  </section>
+
+  <script type="module">
+    const MICRO_USDC_PER_USDC = 1_000_000;
+    const SESSION_KEY = "botlock.session";
+    const WALLET_KEY = "botlock.wallet";
+
+    const $ = (id) => document.getElementById(id);
+    const show = (el) => el.classList.remove("hidden");
+    const hide = (el) => el.classList.add("hidden");
+
+    function botFromEntry(payment) {
+      return payment.botName || payment.userAgent || "Unknown";
+    }
+
+    function formatMicroUsdc(value) {
+      return Number(value || 0).toLocaleString();
+    }
+
+    function formatUsdc(micro) {
+      return (Number(micro || 0) / MICRO_USDC_PER_USDC).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6,
+      });
+    }
+
+    function shortAddr(a) {
+      if (!a) return "";
+      return a.length > 12 ? `${a.slice(0, 4)}…${a.slice(-4)}` : a;
+    }
+
+    function mapTopCounts(items) {
+      const map = new Map();
+      for (const item of items) {
+        map.set(item, (map.get(item) || 0) + 1);
+      }
+      return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    }
+
+    function renderNavRight(authenticated) {
+      const navRight = $("nav-right");
+      if (authenticated) {
+        navRight.innerHTML = `
+          <span class="wallet-pill">
+            <span class="material-symbols-rounded">account_balance_wallet</span>
+            <span id="nav-wallet-text"></span>
+          </span>
+          <button class="btn btn--ghost" id="nav-refresh-btn">
+            <span class="material-symbols-rounded">refresh</span>
+            <span>Refresh</span>
+          </button>
+          <button class="btn btn--ghost" id="nav-signout-btn">
+            <span class="material-symbols-rounded">logout</span>
+            <span>Sign out</span>
+          </button>`;
+        $("nav-wallet-text").textContent = shortAddr(localStorage.getItem(WALLET_KEY));
+        $("nav-refresh-btn").addEventListener("click", loadDashboard);
+        $("nav-signout-btn").addEventListener("click", signOut);
+      } else {
+        navRight.innerHTML = "";
+      }
+    }
+
+    function renderTopList(containerId, entries) {
+      const wrap = $(containerId);
+      if (!entries.length) {
+        wrap.innerHTML = '<li style="justify-content: center; color: var(--text-tertiary); font-size: 13px; padding: 20px 0;">No data yet</li>';
+        return;
+      }
+      wrap.innerHTML = entries
+        .map(([key, count]) => `
+          <li>
+            <span class="bot-badge">
+              <span class="material-symbols-rounded">smart_toy</span>
+              ${key}
+            </span>
+            <span class="count-badge">${count}</span>
+          </li>`)
+        .join("");
+    }
+
+    function renderPayments(payments) {
+      const wrap = $("payments-table-wrap");
+      if (!payments.length) {
+        wrap.innerHTML = `
+          <div class="empty-state">
+            <span class="material-symbols-rounded">inbox</span>
+            <p>No payments recorded yet</p>
+            <p class="empty-sub">Send a request with a bot User-Agent to get started</p>
+          </div>`;
+        return;
+      }
+      const rows = payments.slice(0, 12).map((p) => `
+        <tr>
+          <td><span class="bot-badge"><span class="material-symbols-rounded">smart_toy</span>${botFromEntry(p)}</span></td>
+          <td class="mono">${p.path || "—"}</td>
+          <td class="amount">${formatMicroUsdc(p.lamports)}</td>
+          <td class="timestamp">${new Date(p.timestamp).toLocaleString()}</td>
+        </tr>`).join("");
+      wrap.innerHTML = `
+        <table>
+          <thead><tr><th>Bot</th><th>Path</th><th>Paid (µUSDC)</th><th>Time</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    async function connectWallet() {
+      const errorEl = $("auth-error");
+      errorEl.textContent = "";
+      const provider = window.solana || window.phantom?.solana;
+      if (!provider) {
+        errorEl.innerHTML = 'No Solana wallet detected. Install <a href="https://phantom.app" target="_blank">Phantom</a> and reload.';
+        return;
+      }
+
+      try {
+        const connectBtn = $("connect-btn");
+        connectBtn.disabled = true;
+        connectBtn.innerHTML = '<div class="spinner"></div><span>Connecting...</span>';
+
+        const resp = await provider.connect();
+        const walletAddress = resp.publicKey.toString();
+
+        const nonceRes = await fetch("/v1/auth/nonce", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ walletAddress }),
+        });
+        const nonceData = await nonceRes.json();
+        if (!nonceRes.ok) throw new Error(nonceData.error || "Failed to get nonce");
+
+        connectBtn.innerHTML = '<div class="spinner"></div><span>Sign in wallet...</span>';
+        const messageBytes = new TextEncoder().encode(nonceData.message);
+        const signed = await provider.signMessage(messageBytes, "utf8");
+        const signature = bs58Encode(signed.signature);
+
+        const verifyRes = await fetch("/v1/auth/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress,
+            message: nonceData.message,
+            signature,
+            token: nonceData.token,
+          }),
+        });
+        const verifyData = await verifyRes.json();
+        if (!verifyRes.ok) throw new Error(verifyData.error || "Login failed");
+
+        localStorage.setItem(SESSION_KEY, verifyData.session);
+        localStorage.setItem(WALLET_KEY, verifyData.walletAddress);
+        await enterDashboard();
+      } catch (err) {
+        errorEl.textContent = err.message || "Wallet sign-in failed";
+      } finally {
+        const connectBtn = $("connect-btn");
+        connectBtn.disabled = false;
+        connectBtn.innerHTML = '<span class="material-symbols-rounded">wallet</span><span>Connect Wallet</span>';
+      }
+    }
+
+    function signOut() {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(WALLET_KEY);
+      hide($("dashboard-view"));
+      show($("auth-view"));
+      renderNavRight(false);
+    }
+
+    async function enterDashboard() {
+      hide($("auth-view"));
+      show($("dashboard-view"));
+      renderNavRight(true);
+      await loadDashboard();
+    }
+
+    async function loadDashboard() {
+      const errorEl = $("error-text");
+      errorEl.textContent = "";
+      const session = localStorage.getItem(SESSION_KEY);
+      if (!session) return signOut();
+      try {
+        const res = await fetch("/v1/dashboard", {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${session}` },
+        });
+        const data = await res.json();
+        if (res.status === 401) {
+          signOut();
+          return;
+        }
+        if (!res.ok) throw new Error(data.error || "Failed to load dashboard");
+
+        const payments = data.payments || [];
+        const totalMicroUsdc = Number(data.total_lamports || 0);
+        const uniqueBots = new Set(payments.map(botFromEntry).filter(Boolean)).size;
+
+        $("total-earnings").textContent = formatMicroUsdc(totalMicroUsdc);
+        $("total-earnings-usdc").textContent = formatUsdc(totalMicroUsdc);
+        $("payments-count").textContent = Number(data.total || payments.length).toLocaleString();
+        $("unique-bots").textContent = uniqueBots.toLocaleString();
+
+        renderPayments(payments);
+        renderTopList("top-bots-wrap", mapTopCounts(payments.map(botFromEntry)));
+        renderTopList("top-pages-wrap", mapTopCounts(payments.map((p) => p.path || "—")));
+      } catch (err) {
+        errorEl.textContent = err.message || "Could not fetch dashboard.";
+      }
+    }
+
+    function bs58Encode(bytes) {
+      const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+      const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+      let zeros = 0;
+      while (zeros < u8.length && u8[zeros] === 0) zeros++;
+      const digits = [0];
+      for (let i = zeros; i < u8.length; i++) {
+        let carry = u8[i];
+        for (let j = 0; j < digits.length; j++) {
+          carry += digits[j] << 8;
+          digits[j] = carry % 58;
+          carry = (carry / 58) | 0;
+        }
+        while (carry > 0) {
+          digits.push(carry % 58);
+          carry = (carry / 58) | 0;
+        }
+      }
+      let out = "";
+      for (let i = 0; i < zeros; i++) out += "1";
+      for (let i = digits.length - 1; i >= 0; i--) out += ALPHABET[digits[i]];
+      return out;
+    }
+
+    $("connect-btn").addEventListener("click", connectWallet);
+
+    if (localStorage.getItem(SESSION_KEY) && localStorage.getItem(WALLET_KEY)) {
+      enterDashboard();
+      setInterval(loadDashboard, 15000);
+    }
+  </script>
+</body>
+</html>

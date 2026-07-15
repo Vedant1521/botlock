@@ -16,6 +16,9 @@ yarn-error.log*
 # Interview Documentation folder (to be kept local and ignored on GitHub)
 documentation/
 
+# Agent config (local only)
+AGENT.md
+
 # Builds/Configs
 dist/
 .cache/

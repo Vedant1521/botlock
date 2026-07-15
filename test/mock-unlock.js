@@ -34,7 +34,7 @@ async function run() {
     x402Version: 1,
     scheme: 'exact',
     network: 'solana-devnet',
-    payload: { signature: 'mock_tx_123456' },
+    payload: { signature: `mock_tx_${Date.now()}` },
   })).toString('base64');
 
   // Step 3: Retry with payment + challenge token

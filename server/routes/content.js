@@ -19,7 +19,7 @@ import {
   getUsdcMintAddress,
   getNetwork,
 } from '../services/verifyPayment.js';
-import { recordPayment } from '../data/payments.js';
+import { recordWalletPayment } from '../data/wallets.js';
 import { getPriceForRequest } from '../services/relevanceScorer.js';
 import { createPaymentChallenge } from '../services/paymentChallenge.js';
 
@@ -151,17 +151,19 @@ async function handle(req, res) {
 
   if (result.verified && result.signature) {
     try {
-      await recordPayment({
-        tx:              result.signature,
-        botName:         req.botName,
-        userAgent:       req.headers['user-agent'],
-        path:            req.path,
-        pageHash:        req.path,
-        lamports:        result.received || actualPrice,
-        relevanceScore:  score,
-        contentType:     breakdown.contentType,
-        botMultiplier:   breakdown.botMultiplier,
-        exclusivityMod:  breakdown.exclusivityMod,
+      await recordWalletPayment({
+        walletAddress:    process.env.WALLET_ADDRESS,
+        network:          getNetwork(),
+        tx:               result.signature,
+        botName:          req.botName,
+        userAgent:        req.headers['user-agent'],
+        path:             req.path,
+        pageHash:         req.path,
+        lamports:         result.received || actualPrice,
+        relevanceScore:   Math.round(score * 1000),
+        contentType:      breakdown.contentType,
+        botMultiplier:    breakdown.botMultiplier,
+        exclusivityMod:   breakdown.exclusivityMod,
       });
     } catch (err) {
       console.warn('Failed to record payment:', err.message);
