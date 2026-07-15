@@ -80,7 +80,7 @@ function TerminalDemo() {
 
   return (
     <div className="relative">
-      <div className="rounded-2xl border border-gray-200 dark:border-border bg-gray-50 dark:bg-surface shadow-2xl overflow-hidden glow-accent">
+      <div className="rounded-2xl border border-gray-200 dark:border-border bg-gray-50 dark:bg-surface shadow-2xl overflow-hidden glow-accent w-full">
         {/* Title bar */}
         <div className="flex items-center gap-2 border-b border-gray-200 dark:border-border bg-gray-100 dark:bg-raised px-4 py-3">
           <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
@@ -93,7 +93,7 @@ function TerminalDemo() {
         </div>
 
         {/* Terminal body */}
-        <div className="code-block p-4 space-y-0.5 min-h-[300px]">
+        <div className="code-block p-3 sm:p-4 space-y-0.5 min-h-[300px] overflow-x-auto">
           {TERMINAL_LINES.map((line, i) => {
             if (line.type === "gap") {
               return visibleLines.includes(i) ? <div key={i} className="h-3" /> : null;
@@ -105,7 +105,7 @@ function TerminalDemo() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.15 }}
-                className={`font-mono whitespace-pre truncate ${lineColor(line.type)}`}
+                className={`font-mono text-xs sm:text-sm break-all ${lineColor(line.type)}`}
               >
                 {line.text}
               </motion.div>
@@ -139,7 +139,7 @@ function StatusItem({ icon, label }: { icon: ReactNode; label: string }) {
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex flex-col justify-center pt-16 overflow-hidden">
+    <section className="relative min-h-screen flex flex-col justify-center pt-16 overflow-x-hidden">
       {/* Grid background */}
       <div className="absolute inset-0 grid-bg pointer-events-none" />
 
@@ -151,7 +151,7 @@ export function Hero() {
       {/* Bottom fade */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-base pointer-events-none" />
 
-      <div className="relative mx-auto max-w-7xl px-6 grid lg:grid-cols-2 gap-8 lg:gap-12 lg:gap-16 items-center py-20 flex-1">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 grid lg:grid-cols-2 gap-8 lg:gap-12 lg:gap-16 items-center py-12 sm:py-20 flex-1">
         {/* Left: Copy */}
         <div>
           <motion.div
@@ -181,7 +181,7 @@ export function Hero() {
             variants={fadeUp}
             initial="hidden"
             animate="show"
-            className="mt-6 max-w-xl text-lg text-gray-600 dark:text-inkMuted leading-relaxed"
+            className="mt-6 max-w-xl text-base sm:text-lg text-gray-600 dark:text-inkMuted leading-relaxed"
           >
             Botlock is an HTTP 402 paywall for AI agents. A drop-in SDK for
             publishers and an auto-pay SDK for agents, settled in USDC
@@ -224,7 +224,7 @@ export function Hero() {
 
       {/* Status bar */}
       <div className="relative border-t border-gray-200 dark:border-border bg-white/60 dark:bg-base/60 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-6 h-14 flex flex-wrap items-center justify-center sm:justify-between gap-3 sm:gap-6 text-xs text-gray-500 dark:text-inkSubtle">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 h-14 flex flex-wrap items-center justify-center sm:justify-between gap-3 sm:gap-6 text-xs text-gray-500 dark:text-inkSubtle">
           <StatusItem icon={<Zap className="h-3.5 w-3.5 text-accent" />} label="Solana devnet + mainnet" />
           <StatusItem icon={<KeyRound className="h-3.5 w-3.5 text-accent" />} label="No API key required" />
           <StatusItem icon={<Scale className="h-3.5 w-3.5 text-accent" />} label="MIT license" />
