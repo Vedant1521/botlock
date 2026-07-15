@@ -92,6 +92,15 @@ export function Nav() {
           </a>
 
           <a
+            href="https://botlock-production.up.railway.app/dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-border px-4 py-2 text-sm font-medium text-gray-600 dark:text-inkMuted hover:text-black dark:hover:text-ink hover:border-gray-300 dark:hover:border-borderStrong transition-colors"
+          >
+            Dashboard
+          </a>
+
+          <a
             href="/docs/publisher"
             className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-black hover:bg-accent-dark transition-colors"
           >

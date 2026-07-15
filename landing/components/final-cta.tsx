@@ -69,12 +69,18 @@ export function FinalCTA() {
           className="mt-8 flex flex-wrap justify-center gap-4"
         >
           <a
-            href="https://github.com/Vedant1521/botlock"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/docs/publisher"
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-black hover:bg-accent-dark transition-colors glow-accent-sm"
           >
             Get Started <ArrowRight className="h-4 w-4" />
+          </a>
+          <a
+            href="https://botlock-production.up.railway.app/dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-border bg-white dark:bg-surface px-6 py-3 text-sm font-semibold text-black dark:text-ink hover:border-gray-300 dark:hover:border-borderStrong transition-colors"
+          >
+            Open Dashboard <ArrowRight className="h-4 w-4" />
           </a>
           <a
             href="https://github.com/Vedant1521/botlock"

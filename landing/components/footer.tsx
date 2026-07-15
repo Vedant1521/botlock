@@ -4,11 +4,12 @@ const columns: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Product",
     links: [
-      { label: "The Problem", href: "#problem" },
-      { label: "How It Works", href: "#how-it-works" },
-      { label: "SDKs", href: "#sdks" },
-      { label: "Pricing", href: "#pricing" },
-      { label: "FAQ", href: "#faq" },
+      { label: "The Problem", href: "/#problem" },
+      { label: "How It Works", href: "/#how-it-works" },
+      { label: "SDKs", href: "/#sdks" },
+      { label: "Pricing", href: "/#pricing" },
+      { label: "FAQ", href: "/#faq" },
+      { label: "Dashboard", href: "https://botlock-production.up.railway.app/dashboard" },
     ],
   },
   {
