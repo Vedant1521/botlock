@@ -16,6 +16,9 @@ yarn-error.log*
 # Interview Documentation folder (to be kept local and ignored on GitHub)
 documentation/
 
+# Presentation deck (local only)
+documentation/presentation_deck.md
+
 # Agent config (local only)
 AGENT.md
 .opencode/
