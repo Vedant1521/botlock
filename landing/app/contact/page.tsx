@@ -11,6 +11,8 @@ export default function ContactPage() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [messageLength, setMessageLength] = useState(0);
+  const MAX_MESSAGE = 1000;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -179,21 +181,42 @@ export default function ContactPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-inkSubtle mb-2 uppercase tracking-wider">
-                  Message <span className="text-danger">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-medium text-gray-500 dark:text-inkSubtle uppercase tracking-wider">
+                    Message <span className="text-danger">*</span>
+                  </label>
+                  <span className={`text-xs font-mono ${messageLength > MAX_MESSAGE ? "text-danger" : "text-gray-400 dark:text-inkSubtle"}`}>
+                    {MAX_MESSAGE - messageLength}
+                  </span>
+                </div>
                 <textarea
                   name="message"
                   required
                   rows={5}
+                  maxLength={MAX_MESSAGE}
                   placeholder="Tell us about your site, traffic volume, and what you'd like to gate..."
-                  className="w-full px-4 py-3 rounded-lg bg-white dark:bg-raised border border-gray-200 dark:border-border text-black dark:text-ink text-sm placeholder:text-gray-400 dark:placeholder:text-inkSubtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-none"
+                  onChange={(e) => setMessageLength(e.target.value.length)}
+                  className={`w-full px-4 py-3 rounded-lg bg-white dark:bg-raised border text-black dark:text-ink text-sm placeholder:text-gray-400 dark:placeholder:text-inkSubtle focus:outline-none focus:ring-1 transition-colors resize-none ${
+                    messageLength > MAX_MESSAGE
+                      ? "border-danger focus:border-danger focus:ring-danger"
+                      : "border-gray-200 dark:border-border focus:border-accent focus:ring-accent"
+                  }`}
                 />
+                {messageLength > MAX_MESSAGE * 0.9 && messageLength <= MAX_MESSAGE && (
+                  <p className="mt-1.5 text-xs text-amber-500">
+                    Approaching character limit
+                  </p>
+                )}
+                {messageLength > MAX_MESSAGE && (
+                  <p className="mt-1.5 text-xs text-danger">
+                    Message exceeds {MAX_MESSAGE} characters — please shorten it or email us directly
+                  </p>
+                )}
               </div>
 
               <button
                 type="submit"
-                disabled={status === "submitting"}
+                disabled={status === "submitting" || messageLength > MAX_MESSAGE}
                 className="w-full inline-flex items-center justify-center gap-2 bg-accent hover:bg-accent-light text-black font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {status === "submitting" ? (
