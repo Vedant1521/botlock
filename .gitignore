@@ -32,3 +32,4 @@ test/treasury-keypair.json
 # Landing page dependencies
 landing/node_modules/
 landing/.next/
+landing/out/
