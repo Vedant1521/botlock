@@ -18,6 +18,7 @@ documentation/
 
 # Agent config (local only)
 AGENT.md
+.opencode/
 
 # Builds/Configs
 dist/
