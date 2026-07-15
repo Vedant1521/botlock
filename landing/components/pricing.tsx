@@ -10,6 +10,7 @@ const plans: {
   description: string;
   features: string[];
   cta: string;
+  href?: string;
   highlight: boolean;
 }[] = [
   {
