@@ -1,6 +1,6 @@
 # Botlock
 
-> **robots.txt was a suggestion. This isn't.**
+> **AI agents scrape your content. Botlock makes them pay.**
 
 Botlock makes AI agent content access **enforceable at the protocol layer**. Publishers drop in two lines of SDK to gate any route and receive USDC micropayments directly in their Solana wallet. AI agents pay automatically, or they don't get in.
 
@@ -10,9 +10,12 @@ Botlock makes AI agent content access **enforceable at the protocol layer**. Pub
 
 | Resource | URL |
 |---|---|
+| Landing page | https://botlock.vercel.app |
 | Facilitator API | https://botlock-production.up.railway.app |
 | Publisher SDK (npm) | https://www.npmjs.com/package/botlock-sdk |
 | Agent SDK (npm) | https://www.npmjs.com/package/botlock-agent-sdk |
+| Publisher docs | https://botlock.vercel.app/docs/publisher |
+| Agent docs | https://botlock.vercel.app/docs/agent |
 | GitHub | https://github.com/Vedant1521/botlock |
 
 ---
@@ -55,6 +58,25 @@ AI Agent                    Publisher Server              Solana
 
 ---
 
+## Try It in 30 Seconds
+
+```bash
+# 1. Hit the live server as a human — passes through
+curl https://botlock-production.up.railway.app/health
+
+# 2. Hit it as an AI bot — gets HTTP 402
+curl -A "GPTBot/1.0" https://botlock-production.up.railway.app/articles/test
+# → HTTP 402 with x402 payment envelope
+
+# 3. Install the Publisher SDK
+npm install botlock-sdk
+
+# 4. Install the Agent SDK
+npm install botlock-agent-sdk @solana/web3.js @solana/spl-token @x402-solana/core
+```
+
+---
+
 ## Publisher SDK — Gate Your Content
 
 ```bash
@@ -67,7 +89,7 @@ import { expressMiddleware } from "botlock-sdk/express";
 
 const paywall = createPaywall({
   walletAddress: process.env.SOLANA_WALLET_ADDRESS,
-  network: "devnet",
+  network: "mainnet-beta",
   protect: ["/articles/*", "/api/data/*"],
   basePriceMicroUsdc: 1_000,
 });
@@ -81,6 +103,8 @@ app.get("/articles/:slug", (req, res) => {
 
 Adapters included: **Express · Next.js App Router · Fastify · Cloudflare Workers**
 
+Full reference: [Publisher Docs](https://botlock.vercel.app/docs/publisher)
+
 ---
 
 ## Agent SDK — Pay Paywalls Automatically
@@ -93,7 +117,7 @@ npm install botlock-agent-sdk @solana/web3.js @solana/spl-token @x402-solana/cor
 import { createAgentPaywallClient, fromKeypairFile } from "botlock-agent-sdk";
 
 const client = createAgentPaywallClient({
-  network: "devnet",
+  network: "mainnet-beta",
   signer: fromKeypairFile(),
   maxAmountMicroUsdc: 10_000,
   maxTotalMicroUsdc: 1_000_000,
@@ -109,6 +133,8 @@ console.log("total spend:", client.spend(), "µUSDC");
 ```
 
 LangChain integration available via `botlock-agent-sdk/langchain`.
+
+Full reference: [Agent Docs](https://botlock.vercel.app/docs/agent)
 
 ---
 
@@ -154,7 +180,7 @@ PORT=3000
 
 > Generate HMAC secrets with: `openssl rand -hex 32`
 
-### 4. Start the Server
+### 4. Start the Facilitator Server
 
 ```bash
 npm start
@@ -165,6 +191,15 @@ npm start
 
 Visit http://localhost:3000/dashboard — connect your Phantom wallet to view real-time analytics.
 
+### 6. (Optional) Run the Landing Page
+
+```bash
+cd landing
+npm install
+npm run dev
+# Open http://localhost:3001
+```
+
 ---
 
 ## Testing
@@ -174,12 +209,14 @@ Visit http://localhost:3000/dashboard — connect your Phantom wallet to view re
 ```bash
 # Health check
 curl http://localhost:3000/health
+# → { "status": "ok", "uptime": N }
 
-# Human request — passes through (200)
+# Human browser request — passes through with 200
 curl http://localhost:3000/articles/test
 
 # AI bot request — blocked with 402
 curl -A "GPTBot/1.0" http://localhost:3000/articles/test
+# → 402 with x402 envelope containing payTo, amount, challenge
 
 # Run full smoke test suite
 npm run test:ai
@@ -197,13 +234,23 @@ node test/mock-unlock.js
 ```bash
 # Prerequisites: funded devnet wallet at ~/.config/solana/id.json
 # Get devnet SOL:  solana airdrop 2 --url devnet
-# Get devnet USDC: https://faucet.circle.com
+# Get devnet USDC: https://faucet.circle.com (mint: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU)
 
 # Set MOCK_VERIFICATION="false" in .env
 npm run test:e2e
+
+# Against the live deployed server
+BASE_URL=https://botlock-production.up.railway.app npm run test:e2e
+
+# Against your own consumer service
+CONSUMER_URL=http://localhost:4010 node e2e-sdk-flow.js
 ```
 
-The test sends real USDC on Solana devnet, verifies the on-chain transaction, and unlocks the content.
+The test:
+1. Sends a bot request → asserts `HTTP 402`
+2. Reads the x402 envelope (`payTo`, `amount`, `challenge`)
+3. Submits a USDC SPL transfer on Solana devnet
+4. Retries with `X-PAYMENT` + `x-paywall-challenge` headers → asserts `HTTP 200`
 
 ---
 
@@ -214,7 +261,7 @@ botlock/
 ├── packages/
 │   ├── botlock-sdk/                # Publisher SDK (npm)
 │   │   └── src/
-│   │       ├── index.js                # createPaywall()
+│   │       ├── index.js                # createPaywall() + detectBot()
 │   │       ├── core/
 │   │       │   ├── paywall.js          # framework-agnostic orchestrator
 │   │       │   ├── botDetector.js      # multi-signal bot scoring (33 patterns)
@@ -226,18 +273,18 @@ botlock/
 │   │           └── cloudflare.js
 │   └── botlock-agent-sdk/          # Agent SDK (npm)
 │       └── src/
-│           ├── index.js                # createAgentPaywallClient()
+│           ├── index.js                # createAgentPaywallClient() + signer helpers
 │           ├── core/
 │           │   ├── client.js           # fetch() wrapper + payment loop
 │           │   ├── payment.js          # USDC SPL transfer builder
-│           │   ├── signer.js           # keypair helpers
+│           │   ├── signer.js           # keypair helpers (file, array, base58, custom)
 │           │   ├── guards.js           # safety policy + budget enforcement
-│           │   ├── spendTracker.js     # spend tracking + coalescing
-│           │   └── errors.js           # typed error classes
+│           │   ├── spendTracker.js     # per-session spend tracking + coalescing
+│           │   └── errors.js           # typed error classes (6 types)
 │           └── tools/
 │               └── langchain.js        # LangChain tool wrapper
 │
-├── server/                         # Facilitator server
+├── server/                         # Facilitator server (deployed on Railway)
 │   ├── index.js                    # Express entry point
 │   ├── routes/
 │   │   ├── v1.js                   # /v1/challenge, /v1/verify, /v1/auth/*, /v1/dashboard
@@ -258,14 +305,39 @@ botlock/
 │   ├── index.html                  # Server gateway homepage
 │   └── policy.html                 # Human-readable AI access policy
 │
+├── landing/                        # Next.js marketing site (deployed on Vercel)
+│   ├── app/
+│   │   ├── page.tsx                # Home page (12 sections)
+│   │   ├── layout.tsx              # Root layout with fonts + theme bootstrap
+│   │   ├── globals.css             # Tailwind + dark/light theme variables
+│   │   ├── contact/page.tsx        # Contact Sales form (Formspree)
+│   │   └── docs/
+│   │       ├── publisher/page.tsx  # Publisher SDK documentation
+│   │       └── agent/page.tsx      # Agent SDK documentation
+│   └── components/
+│       ├── nav.tsx                 # Sticky navbar with dark/light toggle
+│       ├── hero.tsx                # Hero with animated terminal demo
+│       ├── stats.tsx               # Metrics grid (4 stats)
+│       ├── problem.tsx             # "The Problem" section
+│       ├── how-it-works.tsx        # 3-step flow + SVG payment diagram
+│       ├── sdks.tsx                # Publisher SDK + Agent SDK cards
+│       ├── features.tsx            # 6 feature cards
+│       ├── code-in-action.tsx      # Tabbed code examples (6 tabs)
+│       ├── why-blockchain.tsx      # Why Solana + USDC
+│       ├── pricing.tsx             # Free / Pro / Enterprise pricing
+│       ├── faq.tsx                 # Expandable Q&A (6 items)
+│       ├── final-cta.tsx           # "The payment layer agents can't bypass"
+│       └── footer.tsx              # Footer with nav columns + links
+│
 ├── supabase/
-│   └── schema.sql                  # Postgres schema
+│   └── schema.sql                  # Postgres schema (run once in Supabase SQL editor)
 │
 └── test/
-    ├── simulate.js                 # Smoke test suite
-    ├── mock-unlock.js              # Mock unlock test
-    ├── e2e.js                      # End-to-end devnet test
-    └── generate-wallet.js          # Solana keypair generator
+    ├── simulate.js                 # Smoke test suite (6 tests)
+    ├── mock-unlock.js              # Mock unlock test (no blockchain)
+    ├── e2e.js                      # End-to-end devnet test (real USDC)
+    ├── generate-wallet.js          # Solana keypair generator
+    └── e2e-sdk-flow.js             # SDK-level E2E flow (root level)
 ```
 
 ---
@@ -282,6 +354,8 @@ botlock/
 | Dashboard auth | Sign-In with Solana (stateless HMAC-signed sessions) |
 | Bot detection | 33 UA patterns + header fingerprint + datacenter CIDR + reverse DNS |
 | SDKs | `botlock-sdk` (zero deps) + `botlock-agent-sdk` (peer deps) |
+| Landing page | Next.js 14, TypeScript, Tailwind CSS, Framer Motion |
+| Deployment | Railway (server) + Vercel (landing) |
 
 ---
 
@@ -297,6 +371,8 @@ Multi-signal scoring with **33 User-Agent regex patterns**, browser header finge
 | Missing browser headers | Medium | No `Accept-Language`, no `Sec-Fetch-*` |
 | Datacenter IP CIDR | Medium | AWS, GCP, Azure, Cloudflare ranges |
 | Reverse DNS | Medium | Hostname resolves to known crawler infra |
+
+Score >= threshold -> HTTP 402 with x402 envelope. Humans pass through without any latency penalty.
 
 ### Dynamic Pricing Engine
 
@@ -325,6 +401,10 @@ Publishers authenticate via Phantom wallet (Sign-In with Solana). No passwords, 
 ### Sponsored ATA Onboarding
 
 New publishers without a USDC token account get one auto-created by the server's fee-payer wallet (~0.002 SOL). Concurrent request race conditions are prevented via in-flight promise caching (`ataEnsureInFlight`).
+
+### Mock Verification Mode
+
+Set `MOCK_VERIFICATION="true"` in `.env` to bypass Solana RPC calls during local development. Mock signatures (`mock_tx_*`) are accepted, replay-protected via Supabase, and logged to the database — enabling full end-to-end testing without blockchain dependencies.
 
 ---
 
@@ -365,7 +445,7 @@ The SDK is a convenience wrapper. Publishers using Python, Go, or any language c
 import requests
 
 # Issue challenge
-resp = requests.post("https://your-server.com/v1/challenge", json={
+resp = requests.post("https://botlock-production.up.railway.app/v1/challenge", json={
     "walletAddress": "ABC...",
     "resource": "/articles/test",
     "network": "devnet",
@@ -373,7 +453,7 @@ resp = requests.post("https://your-server.com/v1/challenge", json={
 challenge = resp.json()
 
 # After paying USDC on Solana, verify:
-verify = requests.post("https://your-server.com/v1/verify", json={
+verify = requests.post("https://botlock-production.up.railway.app/v1/verify", json={
     "walletAddress": "ABC...",
     "paymentHeader": payment_header,
     "resource": "/articles/test",
@@ -381,8 +461,6 @@ verify = requests.post("https://your-server.com/v1/verify", json={
     "requiredMicroUsdc": int(challenge["accepts"][0]["maxAmountRequired"]),
 })
 ```
-
-See `documentation/integration_methods.md` for full cross-language examples.
 
 ---
 
@@ -411,6 +489,14 @@ CREATE TABLE IF NOT EXISTS public.verified_tx_cache (
   cached_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ```
+
+---
+
+## Documentation
+
+- [Publisher Docs](https://botlock.vercel.app/docs/publisher) — install the SDK, gate content, configure pricing, dashboard auth
+- [Agent Docs](https://botlock.vercel.app/docs/agent) — auto-pay 402s, budget limits, LangChain tool, typed errors
+- [Contact Sales](https://botlock.vercel.app/contact) — get in touch for enterprise integration
 
 ---
 
