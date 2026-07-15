@@ -10,7 +10,7 @@ Botlock makes AI agent content access **enforceable at the protocol layer**. Pub
 
 | Resource | URL |
 |---|---|
-| Facilitator API | _(deploy your own — see Local Quickstart)_ |
+| Facilitator API | https://botlock-production.up.railway.app |
 | Publisher SDK (npm) | https://www.npmjs.com/package/botlock-sdk |
 | Agent SDK (npm) | https://www.npmjs.com/package/botlock-agent-sdk |
 | GitHub | https://github.com/Vedant1521/botlock |

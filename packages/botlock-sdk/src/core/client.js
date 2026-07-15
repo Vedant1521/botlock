@@ -9,7 +9,7 @@
  *   POST {apiUrl}/v1/verify
  */
 
-const DEFAULT_API_URL = "http://localhost:3000";
+const DEFAULT_API_URL = "https://botlock-production.up.railway.app";
 
 export class PaywallClient {
   constructor({ walletAddress, network, usdcMint, apiUrl, fetchImpl, timeoutMs = 8000 }) {
