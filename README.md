@@ -6,7 +6,7 @@ Botlock makes AI agent content access **enforceable at the protocol layer**. Pub
 
 ---
 
-## Live Links
+## Live Links:
 
 | Resource | URL |
 |---|---|
